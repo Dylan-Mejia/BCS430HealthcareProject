@@ -16,6 +16,8 @@ public class Doctor {
     private String address;
     private String phone;
     private String email; // public contact address
+    private Double latitude;
+    private Double longitude;
 
     // additional profile details that may be loaded when viewing full profile
     private String licenseNumber;
@@ -138,6 +140,22 @@ public class Doctor {
 
     public void setPublicEmail(String email) {
         this.email = email;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(Double latitude) {
+        this.latitude = latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(Double longitude) {
+        this.longitude = longitude;
     }
 
     public String getLicenseNumber() {

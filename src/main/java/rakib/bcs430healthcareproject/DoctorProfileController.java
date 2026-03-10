@@ -165,10 +165,8 @@ public class DoctorProfileController {
         notesArea.setText(doctor.getNotes());
     }
 
-    /**
-     * Fill UI with data from DoctorProfile (used when doctor edits their own information).
-     */
     private void populateFromDoctorProfile(DoctorProfile profile) {
+        System.out.println("Bio loaded: '" + profile.getBio() + "'");
         nameField.setText(profile.getName());
         specialtyField.setText(profile.getSpecialty());
         licenseField.setText(profile.getLicenseNumber());
@@ -301,6 +299,7 @@ public class DoctorProfileController {
         tempProfile.setSpecialty(text(specialtyField));
         tempProfile.setLicenseNumber(text(licenseField));
         tempProfile.setBio(text(bioArea));
+        System.out.println("Bio to save: '" + tempProfile.getBio() + "'");
 
         tempProfile.setClinicName(text(clinicNameField));
         tempProfile.setAddress(text(addressField));
