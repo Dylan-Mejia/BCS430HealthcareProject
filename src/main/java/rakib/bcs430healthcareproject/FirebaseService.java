@@ -369,6 +369,22 @@ public class FirebaseService {
 
                     doctors.add(doctor);
                 }
+
+                // If no doctors, add a test doctor
+                if (doctors.isEmpty()) {
+                    Doctor testDoctor = new Doctor();
+                    testDoctor.setUid("test123");
+                    testDoctor.setName("Dr. Test");
+                    testDoctor.setSpecialty("General Medicine");
+                    testDoctor.setZip("10001");
+                    testDoctor.setClinicName("Test Clinic");
+                    testDoctor.setCity("New York");
+                    testDoctor.setState("NY");
+                    testDoctor.setAddress("123 Test St");
+                    testDoctor.setAcceptingNewPatients(true);
+                    doctors.add(testDoctor);
+                }
+
             } catch (Exception e) {
                 throw new RuntimeException("Failed to retrieve doctors: " + e.getMessage(), e);
             }

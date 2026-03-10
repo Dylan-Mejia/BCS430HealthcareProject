@@ -17,9 +17,13 @@ public class HelloApplication extends Application {
         }
 
         SceneRouter.init(stage);
-
-       SceneRouter.go("login-view.fxml", "Healthcare Project");
+        SceneRouter.go("login-view.fxml", "Healthcare Project");
         stage.show();
+        stage.setFullScreenExitHint("Press ESC to exit fullscreen");
+        stage.setFullScreenExitKeyCombination(javafx.scene.input.KeyCombination.valueOf("ESCAPE"));
+        stage.setOnCloseRequest(e -> {
+            // Optionally handle cleanup
+        });
     }
 
     public static void main(String[] args) {
