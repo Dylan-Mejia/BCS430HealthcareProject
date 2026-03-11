@@ -4,24 +4,46 @@ package rakib.bcs430healthcareproject;
  * Model class representing an appointment between a patient and doctor.
  */
 public class Appointment {
+
     private String appointmentId;
+
     private String patientUid;
     private String doctorUid;
+
     private String patientName;
     private String doctorName;
+
+    // Timestamp for sorting
     private Long appointmentDateTime; // Unix timestamp
-    private String appointmentTime; // e.g., "2024-03-15 10:30 AM"
+
+    // Human readable date/time
+    private String appointmentTime; // e.g., "2026-03-15 10:30 AM"
+
+    /**
+     * Fields used for availability checking
+     */
+    private String appointmentDate; // e.g., "2026-03-15"
+    private String appointmentSlot; // e.g., "10:30 AM"
+
     private String status; // SCHEDULED, COMPLETED, CANCELLED
+
     private Boolean newPatient;
+
     private String reason;
+
     private String notes;
+
     private Long createdAt;
 
     public Appointment() {
     }
 
-    public Appointment(String patientUid, String doctorUid, String patientName,
-                       String doctorName, Long appointmentDateTime) {
+    public Appointment(String patientUid,
+                       String doctorUid,
+                       String patientName,
+                       String doctorName,
+                       Long appointmentDateTime) {
+
         this.patientUid = patientUid;
         this.doctorUid = doctorUid;
         this.patientName = patientName;
@@ -30,6 +52,8 @@ public class Appointment {
         this.status = "SCHEDULED";
         this.createdAt = System.currentTimeMillis();
     }
+
+    // ===== Getters / Setters =====
 
     public String getAppointmentId() {
         return appointmentId;
@@ -83,8 +107,37 @@ public class Appointment {
         return appointmentTime;
     }
 
+    /**
+     * Also extracts appointmentDate and appointmentSlot automatically.
+     * Expected format: "YYYY-MM-DD HH:MM AM"
+     */
     public void setAppointmentTime(String appointmentTime) {
         this.appointmentTime = appointmentTime;
+
+        if (appointmentTime != null && appointmentTime.contains(" ")) {
+            String[] parts = appointmentTime.split(" ", 2);
+
+            if (parts.length == 2) {
+                this.appointmentDate = parts[0];
+                this.appointmentSlot = parts[1];
+            }
+        }
+    }
+
+    public String getAppointmentDate() {
+        return appointmentDate;
+    }
+
+    public void setAppointmentDate(String appointmentDate) {
+        this.appointmentDate = appointmentDate;
+    }
+
+    public String getAppointmentSlot() {
+        return appointmentSlot;
+    }
+
+    public void setAppointmentSlot(String appointmentSlot) {
+        this.appointmentSlot = appointmentSlot;
     }
 
     public String getStatus() {

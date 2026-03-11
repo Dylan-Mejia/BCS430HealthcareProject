@@ -1,5 +1,8 @@
 package rakib.bcs430healthcareproject;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Model class representing a doctor for search results.
  * Simplified version of DoctorProfile for displaying in search results.
@@ -24,16 +27,24 @@ public class Doctor {
     private String bio;
     private String insuranceInfo;
     private String hours;    // legacy string representation of office hours
-    private java.util.Map<String,String> availability; // map day->time range (e.g. "Monday"->"9:00 AM-5:00 PM")
+
+    /**
+     * Weekly availability map:
+     * key   = full day name, e.g. "Monday"
+     * value = one or more time ranges, e.g. "09:00 AM-12:00 PM, 02:00 PM-05:00 PM"
+     * blank or missing means unavailable
+     */
+    private Map<String, String> availability;
+
     private String visitType;
     private String notes;
 
     public Doctor() {
-        this.availability = new java.util.HashMap<>();
+        this.availability = new HashMap<>();
     }
 
-    public Doctor(String uid, String name, String specialty, String zip, 
-                  String clinicName, String city, String state, 
+    public Doctor(String uid, String name, String specialty, String zip,
+                  String clinicName, String city, String state,
                   Boolean acceptingNewPatients) {
         this.uid = uid;
         this.name = name;
@@ -43,6 +54,7 @@ public class Doctor {
         this.city = city;
         this.state = state;
         this.acceptingNewPatients = acceptingNewPatients;
+        this.availability = new HashMap<>();
     }
 
     // Getters and Setters
@@ -190,12 +202,24 @@ public class Doctor {
         this.hours = hours;
     }
 
-    public java.util.Map<String, String> getAvailability() {
+    public Map<String, String> getAvailability() {
+        if (availability == null) {
+            availability = new HashMap<>();
+        }
         return availability;
     }
 
-    public void setAvailability(java.util.Map<String, String> availability) {
-        this.availability = availability;
+    public void setAvailability(Map<String, String> availability) {
+        this.availability = (availability != null) ? new HashMap<>(availability) : new HashMap<>();
+    }
+
+    public String getAvailabilityForDay(String dayName) {
+        return getAvailability().getOrDefault(dayName, "");
+    }
+
+    public boolean isAvailableOnDay(String dayName) {
+        String value = getAvailabilityForDay(dayName);
+        return value != null && !value.trim().isEmpty();
     }
 
     public String getVisitType() {
