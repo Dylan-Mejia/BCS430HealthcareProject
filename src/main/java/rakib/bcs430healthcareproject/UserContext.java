@@ -6,13 +6,18 @@ package rakib.bcs430healthcareproject;
  */
 public class UserContext {
     private static UserContext instance;
+
     private String uid;
     private String role;
+
     private PatientProfile patientProfile;
     private DoctorProfile doctorProfile;
-    private Doctor selectedDoctor; // For appointment booking
 
-    private UserContext() {}
+    // For patient appointment booking
+    private Doctor selectedDoctor;
+
+    private UserContext() {
+    }
 
     public static synchronized UserContext getInstance() {
         if (instance == null) {
@@ -27,6 +32,7 @@ public class UserContext {
         this.patientProfile = profile;
         this.doctorProfile = null;
     }
+
     public void setDoctorUserData(String uid, DoctorProfile profile) {
         this.uid = uid;
         this.role = "DOCTOR";
@@ -39,6 +45,7 @@ public class UserContext {
         this.role = null;
         this.patientProfile = null;
         this.doctorProfile = null;
+        this.selectedDoctor = null;
     }
 
     public String getUid() {
@@ -88,10 +95,6 @@ public class UserContext {
         }
         return null;
     }
-
-    /* =======================
-       UPDATE METHODS
-       ======================= */
 
     public void updatePatientProfile(PatientProfile updatedProfile) {
         if (isPatient()) {

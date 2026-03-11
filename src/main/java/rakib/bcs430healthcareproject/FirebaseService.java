@@ -136,11 +136,9 @@ public class FirebaseService {
 
             } catch (FirebaseAuthException e) {
                 throw new RuntimeException(handleAuthException(e));
-
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("Doctor creation interrupted.", e);
-
             } catch (ExecutionException e) {
                 throw new RuntimeException("Failed to save doctor profile: " + e.getMessage(), e);
             }
@@ -358,12 +356,22 @@ public class FirebaseService {
                     doctor.setCity(doc.getString("city"));
                     doctor.setState(doc.getString("state"));
                     doctor.setAddress(doc.getString("address"));
+                    doctor.setPhone(doc.getString("phone"));
                     doctor.setAcceptingNewPatients(doc.getBoolean("acceptingNewPatients"));
+                    doctor.setHours(doc.getString("hours"));
+                    doctor.setInsuranceInfo(doc.getString("insuranceInfo"));
+                    doctor.setBio(doc.getString("bio"));
+                    doctor.setVisitType(doc.getString("visitType"));
+                    doctor.setNotes(doc.getString("notes"));
 
                     Object availabilityObj = doc.get("availability");
-                    if (availabilityObj instanceof Map) {
-                        @SuppressWarnings("unchecked")
-                        Map<String, String> availability = (Map<String, String>) availabilityObj;
+                    if (availabilityObj instanceof Map<?, ?> rawMap) {
+                        Map<String, String> availability = new HashMap<>();
+                        for (Map.Entry<?, ?> entry : rawMap.entrySet()) {
+                            if (entry.getKey() != null && entry.getValue() != null) {
+                                availability.put(entry.getKey().toString(), entry.getValue().toString());
+                            }
+                        }
                         doctor.setAvailability(availability);
                     }
 
@@ -382,6 +390,7 @@ public class FirebaseService {
                     testDoctor.setState("NY");
                     testDoctor.setAddress("123 Test St");
                     testDoctor.setAcceptingNewPatients(true);
+                    testDoctor.setAvailability(new HashMap<>());
                     doctors.add(testDoctor);
                 }
 
@@ -400,22 +409,15 @@ public class FirebaseService {
             List<Appointment> appointments = new ArrayList<>();
 
             try {
-                long startOfDay = date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-                long endOfDay = date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
-
                 QuerySnapshot snapshot = firestore.collection(APPOINTMENTS_COLLECTION)
                         .whereEqualTo("doctorUid", doctorUid)
+                        .whereEqualTo("appointmentDate", date.toString())
                         .get()
                         .get();
 
                 for (DocumentSnapshot doc : snapshot.getDocuments()) {
                     Appointment appointment = doc.toObject(Appointment.class);
-                    if (appointment == null || appointment.getAppointmentDateTime() == null) {
-                        continue;
-                    }
-
-                    long apptTime = appointment.getAppointmentDateTime();
-                    if (apptTime >= startOfDay && apptTime < endOfDay) {
+                    if (appointment != null) {
                         appointment.setAppointmentId(doc.getId());
                         appointments.add(appointment);
                     }
@@ -430,7 +432,79 @@ public class FirebaseService {
     }
 
     /**
+     * Returns all booked slot strings like "09:30 AM" for a doctor on a given date.
+     */
+    public CompletableFuture<List<String>> getBookedTimesForDoctorAndDate(String doctorUid, String appointmentDate) {
+        return CompletableFuture.supplyAsync(() -> {
+            List<String> bookedTimes = new ArrayList<>();
+
+            try {
+                QuerySnapshot snapshot = firestore.collection(APPOINTMENTS_COLLECTION)
+                        .whereEqualTo("doctorUid", doctorUid)
+                        .whereEqualTo("appointmentDate", appointmentDate)
+                        .get()
+                        .get();
+
+                for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                    Appointment appointment = doc.toObject(Appointment.class);
+                    if (appointment == null) {
+                        continue;
+                    }
+
+                    String status = appointment.getStatus();
+                    if (status != null && status.equalsIgnoreCase("CANCELLED")) {
+                        continue;
+                    }
+
+                    String slot = appointment.getAppointmentSlot();
+                    if (slot != null && !slot.isBlank()) {
+                        bookedTimes.add(slot);
+                    }
+                }
+
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to retrieve booked times: " + e.getMessage(), e);
+            }
+
+            return bookedTimes;
+        });
+    }
+
+    /**
+     * Checks whether a specific doctor date/slot is still available.
+     */
+    public CompletableFuture<Boolean> isSlotStillAvailable(String doctorUid, String appointmentDate, String appointmentSlot) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                QuerySnapshot snapshot = firestore.collection(APPOINTMENTS_COLLECTION)
+                        .whereEqualTo("doctorUid", doctorUid)
+                        .whereEqualTo("appointmentDate", appointmentDate)
+                        .whereEqualTo("appointmentSlot", appointmentSlot)
+                        .get()
+                        .get();
+
+                for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                    Appointment appointment = doc.toObject(Appointment.class);
+                    if (appointment == null) {
+                        continue;
+                    }
+
+                    String status = appointment.getStatus();
+                    if (status == null || !status.equalsIgnoreCase("CANCELLED")) {
+                        return false;
+                    }
+                }
+
+                return true;
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to check slot availability: " + e.getMessage(), e);
+            }
+        });
+    }
+
+    /**
      * Checks whether a specific doctor time slot is available.
+     * Legacy timestamp-based check kept for compatibility.
      */
     public CompletableFuture<Boolean> isTimeSlotAvailable(String doctorUid, long appointmentDateTime) {
         return CompletableFuture.supplyAsync(() -> {
@@ -463,46 +537,8 @@ public class FirebaseService {
     public CompletableFuture<Boolean> saveAppointment(Appointment appointment) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                if (appointment == null) {
-                    throw new RuntimeException("Appointment cannot be null.");
-                }
-                if (appointment.getDoctorUid() == null || appointment.getDoctorUid().isBlank()) {
-                    throw new RuntimeException("Doctor ID is required.");
-                }
-                if (appointment.getPatientUid() == null || appointment.getPatientUid().isBlank()) {
-                    throw new RuntimeException("Patient ID is required.");
-                }
-                if (appointment.getAppointmentDateTime() == null) {
-                    throw new RuntimeException("Appointment date/time is required.");
-                }
-
-                boolean available = isTimeSlotAvailable(
-                        appointment.getDoctorUid(),
-                        appointment.getAppointmentDateTime()
-                ).get();
-
-                if (!available) {
-                    throw new RuntimeException("This slot has already been booked.");
-                }
-
-                String appointmentId = firestore.collection(APPOINTMENTS_COLLECTION).document().getId();
-                appointment.setAppointmentId(appointmentId);
-
-                if (appointment.getStatus() == null || appointment.getStatus().isBlank()) {
-                    appointment.setStatus("SCHEDULED");
-                }
-                if (appointment.getCreatedAt() == null) {
-                    appointment.setCreatedAt(System.currentTimeMillis());
-                }
-
-                firestore.collection(APPOINTMENTS_COLLECTION)
-                        .document(appointmentId)
-                        .set(appointment)
-                        .get();
-
-                System.out.println("Appointment saved: " + appointmentId);
-                return true;
-
+                String appointmentId = internalSaveAppointment(appointment);
+                return appointmentId != null && !appointmentId.isBlank();
             } catch (Exception e) {
                 throw new RuntimeException("Failed to save appointment: " + e.getMessage(), e);
             }
@@ -510,57 +546,83 @@ public class FirebaseService {
     }
 
     /**
-     * Books an appointment with conflict prevention.
-     *
-     * Returns appointment ID for backward compatibility.
+     * Books an appointment and returns the created appointment ID.
      */
     public CompletableFuture<String> bookAppointment(Appointment appointment) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                if (appointment == null) {
-                    throw new RuntimeException("Appointment cannot be null.");
-                }
-                if (appointment.getDoctorUid() == null || appointment.getDoctorUid().isBlank()) {
-                    throw new RuntimeException("Doctor ID is required.");
-                }
-                if (appointment.getPatientUid() == null || appointment.getPatientUid().isBlank()) {
-                    throw new RuntimeException("Patient ID is required.");
-                }
-                if (appointment.getAppointmentDateTime() == null) {
-                    throw new RuntimeException("Appointment date/time is required.");
-                }
-
-                boolean available = isTimeSlotAvailable(
-                        appointment.getDoctorUid(),
-                        appointment.getAppointmentDateTime()
-                ).get();
-
-                if (!available) {
-                    throw new RuntimeException("This slot has already been booked.");
-                }
-
-                String appointmentId = firestore.collection(APPOINTMENTS_COLLECTION).document().getId();
-                appointment.setAppointmentId(appointmentId);
-
-                if (appointment.getStatus() == null || appointment.getStatus().isBlank()) {
-                    appointment.setStatus("SCHEDULED");
-                }
-                if (appointment.getCreatedAt() == null) {
-                    appointment.setCreatedAt(System.currentTimeMillis());
-                }
-
-                firestore.collection(APPOINTMENTS_COLLECTION)
-                        .document(appointmentId)
-                        .set(appointment)
-                        .get();
-
-                System.out.println("Appointment booked: " + appointmentId);
-                return appointmentId;
-
+                return internalSaveAppointment(appointment);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to book appointment: " + e.getMessage(), e);
             }
         });
+    }
+
+    private String internalSaveAppointment(Appointment appointment) throws Exception {
+        if (appointment == null) {
+            throw new RuntimeException("Appointment cannot be null.");
+        }
+        if (appointment.getDoctorUid() == null || appointment.getDoctorUid().isBlank()) {
+            throw new RuntimeException("Doctor ID is required.");
+        }
+        if (appointment.getPatientUid() == null || appointment.getPatientUid().isBlank()) {
+            throw new RuntimeException("Patient ID is required.");
+        }
+        if (appointment.getAppointmentDateTime() == null) {
+            throw new RuntimeException("Appointment date/time is required.");
+        }
+
+        // Ensure date + slot are filled for Firebase queries
+        if ((appointment.getAppointmentDate() == null || appointment.getAppointmentDate().isBlank())
+                || (appointment.getAppointmentSlot() == null || appointment.getAppointmentSlot().isBlank())) {
+
+            if (appointment.getAppointmentTime() != null && appointment.getAppointmentTime().contains(" ")) {
+                String[] parts = appointment.getAppointmentTime().split(" ", 2);
+                if (parts.length == 2) {
+                    appointment.setAppointmentDate(parts[0]);
+                    appointment.setAppointmentSlot(parts[1]);
+                }
+            }
+        }
+
+        if (appointment.getAppointmentDate() == null || appointment.getAppointmentDate().isBlank()) {
+            LocalDate derivedDate = Instant.ofEpochMilli(appointment.getAppointmentDateTime())
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate();
+            appointment.setAppointmentDate(derivedDate.toString());
+        }
+
+        if (appointment.getAppointmentSlot() == null || appointment.getAppointmentSlot().isBlank()) {
+            throw new RuntimeException("Appointment time slot is required.");
+        }
+
+        boolean available = isSlotStillAvailable(
+                appointment.getDoctorUid(),
+                appointment.getAppointmentDate(),
+                appointment.getAppointmentSlot()
+        ).get();
+
+        if (!available) {
+            throw new RuntimeException("This slot has already been booked.");
+        }
+
+        String appointmentId = firestore.collection(APPOINTMENTS_COLLECTION).document().getId();
+        appointment.setAppointmentId(appointmentId);
+
+        if (appointment.getStatus() == null || appointment.getStatus().isBlank()) {
+            appointment.setStatus("SCHEDULED");
+        }
+        if (appointment.getCreatedAt() == null) {
+            appointment.setCreatedAt(System.currentTimeMillis());
+        }
+
+        firestore.collection(APPOINTMENTS_COLLECTION)
+                .document(appointmentId)
+                .set(appointment)
+                .get();
+
+        System.out.println("Appointment saved: " + appointmentId);
+        return appointmentId;
     }
 
     /**

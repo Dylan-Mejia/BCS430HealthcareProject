@@ -37,7 +37,15 @@ public class DoctorProfile {
     private String bio;
     private String insuranceInfo;
     private String hours; // legacy field
-    private Map<String, String> availability; // weekly availability: day -> "9:00 AM - 5:00 PM" or "Closed"
+
+    /**
+     * Weekly availability:
+     * key   = full day name, e.g. "Monday"
+     * value = one or more time ranges, e.g. "09:00 AM-12:00 PM, 02:00 PM-05:00 PM"
+     * blank or missing means unavailable
+     */
+    private Map<String, String> availability;
+
     private String visitType;
     private String notes;
 
@@ -274,6 +282,15 @@ public class DoctorProfile {
     public void setAvailability(Map<String, String> availability) {
         this.availability = availability != null ? new HashMap<>(availability) : new HashMap<>();
         touch();
+    }
+
+    public String getAvailabilityForDay(String dayName) {
+        return getAvailability().getOrDefault(dayName, "");
+    }
+
+    public boolean isAvailableOnDay(String dayName) {
+        String value = getAvailabilityForDay(dayName);
+        return value != null && !value.trim().isEmpty();
     }
 
     public String getVisitType() {
