@@ -1,12 +1,13 @@
 package rakib.bcs430healthcareproject;
 
 import com.google.cloud.firestore.annotation.DocumentId;
+
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Model class representing a doctor's profile data.
- * This is stored in Firestore under /doctors/{uid}
+ * Stored in Firestore under /doctors/{uid}
  */
 public class DoctorProfile {
 
@@ -35,7 +36,16 @@ public class DoctorProfile {
     private String licenseNumber;
     private String bio;
     private String insuranceInfo;
-    private String hours;
+    private String hours; // legacy field
+
+    /**
+     * Weekly availability:
+     * key   = full day name, e.g. "Monday"
+     * value = one or more time ranges, e.g. "09:00 AM-12:00 PM, 02:00 PM-05:00 PM"
+     * blank or missing means unavailable
+     */
+    private Map<String, String> availability;
+
     private String visitType;
     private String notes;
 
@@ -47,11 +57,20 @@ public class DoctorProfile {
     private Long createdAt;
     private Long updatedAt;
 
-    // ===== Required no-arg constructor for Firestore =====
+    /**
+     * Required no-arg constructor for Firestore.
+     */
     public DoctorProfile() {
+        this.role = "DOCTOR";
+        this.acceptingNewPatients = false;
+        this.availability = new HashMap<>();
+        this.createdAt = System.currentTimeMillis();
+        this.updatedAt = System.currentTimeMillis();
     }
 
-    // ===== Constructor used at signup =====
+    /**
+     * Constructor used at signup without availability.
+     */
     public DoctorProfile(String uid,
                          String name,
                          String email,
@@ -73,13 +92,42 @@ public class DoctorProfile {
         this.state = state;
         this.zip = zip;
         this.acceptingNewPatients = acceptingNewPatients;
-
         this.role = "DOCTOR";
+        this.availability = new HashMap<>();
         this.createdAt = System.currentTimeMillis();
         this.updatedAt = System.currentTimeMillis();
     }
 
-    // ===== Getters & Setters =====
+    /**
+     * Constructor used at signup with availability.
+     */
+    public DoctorProfile(String uid,
+                         String name,
+                         String email,
+                         String specialty,
+                         String clinicName,
+                         String address,
+                         String city,
+                         String state,
+                         String zip,
+                         Boolean acceptingNewPatients,
+                         Map<String, String> availability) {
+
+        this.uid = uid;
+        this.name = name;
+        this.email = email;
+        this.specialty = specialty;
+        this.clinicName = clinicName;
+        this.address = address;
+        this.city = city;
+        this.state = state;
+        this.zip = zip;
+        this.acceptingNewPatients = acceptingNewPatients;
+        this.role = "DOCTOR";
+        this.availability = availability != null ? new HashMap<>(availability) : new HashMap<>();
+        this.createdAt = System.currentTimeMillis();
+        this.updatedAt = System.currentTimeMillis();
+    }
 
     public String getUid() {
         return uid;
@@ -113,6 +161,7 @@ public class DoctorProfile {
 
     public void setRole(String role) {
         this.role = role;
+        touch();
     }
 
     public String getSpecialty() {
@@ -223,6 +272,27 @@ public class DoctorProfile {
         touch();
     }
 
+    public Map<String, String> getAvailability() {
+        if (availability == null) {
+            availability = new HashMap<>();
+        }
+        return availability;
+    }
+
+    public void setAvailability(Map<String, String> availability) {
+        this.availability = availability != null ? new HashMap<>(availability) : new HashMap<>();
+        touch();
+    }
+
+    public String getAvailabilityForDay(String dayName) {
+        return getAvailability().getOrDefault(dayName, "");
+    }
+
+    public boolean isAvailableOnDay(String dayName) {
+        String value = getAvailabilityForDay(dayName);
+        return value != null && !value.trim().isEmpty();
+    }
+
     public String getVisitType() {
         return visitType;
     }
@@ -277,9 +347,8 @@ public class DoctorProfile {
         this.updatedAt = System.currentTimeMillis();
     }
 
-
     /**
-     * Convert DoctorProfile to a Map for Firestore storage
+     * Convert DoctorProfile to a Map for Firestore storage.
      */
     public Map<String, Object> toMap() {
         Map<String, Object> result = new HashMap<>();
@@ -294,12 +363,14 @@ public class DoctorProfile {
         result.put("city", city);
         result.put("state", state);
         result.put("zip", zip);
+
         result.put("acceptingNewPatients", acceptingNewPatients);
         result.put("phone", phone);
         result.put("licenseNumber", licenseNumber);
         result.put("bio", bio);
         result.put("insuranceInfo", insuranceInfo);
         result.put("hours", hours);
+        result.put("availability", getAvailability());
         result.put("visitType", visitType);
         result.put("notes", notes);
 

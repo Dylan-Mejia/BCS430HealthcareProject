@@ -88,6 +88,15 @@
                         </VBox>
                     </HBox>
                 </VBox>
+
+                <VBox style="-fx-border-color: #E8E8E8; -fx-border-radius: 5; -fx-padding: 20; -fx-spacing: 15; -fx-background-color: white;">
+                    <Label text="Preferred Pickup Pharmacy" style="-fx-text-fill: #2C3E50; -fx-font-size: 16; -fx-font-weight: bold;"/>
+
+                    <VBox spacing="5">
+                        <Label text="Pharmacy Account" style="-fx-text-fill: #333; -fx-font-weight: bold;"/>
+                        <ComboBox fx:id="preferredPickupPharmacyComboBox" style="-fx-padding: 8;"/>
+                    </VBox>
+                </VBox>
                 
                 <!-- Medical Information Section -->
                 <VBox style="-fx-border-color: #E8E8E8; -fx-border-radius: 5; -fx-padding: 20; -fx-spacing: 15; -fx-background-color: white;">
@@ -102,6 +111,18 @@
                         <VBox spacing="5" HBox.hgrow="ALWAYS">
                             <Label text="Vaccination Status" style="-fx-text-fill: #333; -fx-font-weight: bold;"/>
                             <ComboBox fx:id="vaccinationStatusComboBox" style="-fx-padding: 8;"/>
+                        </VBox>
+                    </HBox>
+                    
+                    <!-- Height and Weight Row -->
+                    <HBox spacing="20">
+                        <VBox spacing="5" HBox.hgrow="ALWAYS">
+                            <Label text="Height" style="-fx-text-fill: #333; -fx-font-weight: bold;"/>
+                            <ComboBox fx:id="heightComboBox" style="-fx-padding: 8;"/>
+                        </VBox>
+                        <VBox spacing="5" style="-fx-min-width: 150;">
+                            <Label text="Weight (lbs)" style="-fx-text-fill: #333; -fx-font-weight: bold;"/>
+                            <TextField fx:id="weightField" promptText="e.g., 150" style="-fx-padding: 8;"/>
                         </VBox>
                     </HBox>
                     

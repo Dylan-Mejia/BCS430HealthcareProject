@@ -27,6 +27,10 @@ public class PatientProfile {
     // Insurance Information
     private String insuranceNumber;
     private String insuranceCompany;
+    private String preferredPharmacyUid;
+    private String preferredPharmacyName;
+    private String preferredPharmacyAddress;
+    private String preferredPharmacyPhoneNumber;
     
     // Medical Information
     private String allergies;
@@ -35,6 +39,8 @@ public class PatientProfile {
     private String bloodType;
     private String vaccinationStatus;
     private String medicalHistory;
+    private String height;  // e.g., "5'10\"" or "178 cm"
+    private Double weight;  // in lbs or kg
     
     private Long createdAt;
     private Long updatedAt;
@@ -158,6 +164,38 @@ public class PatientProfile {
         this.insuranceCompany = insuranceCompany;
     }
 
+    public String getPreferredPharmacyUid() {
+        return preferredPharmacyUid;
+    }
+
+    public void setPreferredPharmacyUid(String preferredPharmacyUid) {
+        this.preferredPharmacyUid = preferredPharmacyUid;
+    }
+
+    public String getPreferredPharmacyName() {
+        return preferredPharmacyName;
+    }
+
+    public void setPreferredPharmacyName(String preferredPharmacyName) {
+        this.preferredPharmacyName = preferredPharmacyName;
+    }
+
+    public String getPreferredPharmacyAddress() {
+        return preferredPharmacyAddress;
+    }
+
+    public void setPreferredPharmacyAddress(String preferredPharmacyAddress) {
+        this.preferredPharmacyAddress = preferredPharmacyAddress;
+    }
+
+    public String getPreferredPharmacyPhoneNumber() {
+        return preferredPharmacyPhoneNumber;
+    }
+
+    public void setPreferredPharmacyPhoneNumber(String preferredPharmacyPhoneNumber) {
+        this.preferredPharmacyPhoneNumber = preferredPharmacyPhoneNumber;
+    }
+
     public String getAllergies() {
         return allergies;
     }
@@ -206,6 +244,22 @@ public class PatientProfile {
         this.vaccinationStatus = vaccinationStatus;
     }
 
+    public String getHeight() {
+        return height;
+    }
+
+    public void setHeight(String height) {
+        this.height = height;
+    }
+
+    public Double getWeight() {
+        return weight;
+    }
+
+    public void setWeight(Double weight) {
+        this.weight = weight;
+    }
+
     public Long getCreatedAt() {
         return createdAt;
     }
@@ -240,12 +294,18 @@ public class PatientProfile {
         result.put("gender", gender);
         result.put("insuranceNumber", insuranceNumber);
         result.put("insuranceCompany", insuranceCompany);
+        result.put("preferredPharmacyUid", preferredPharmacyUid);
+        result.put("preferredPharmacyName", preferredPharmacyName);
+        result.put("preferredPharmacyAddress", preferredPharmacyAddress);
+        result.put("preferredPharmacyPhoneNumber", preferredPharmacyPhoneNumber);
         result.put("allergies", allergies);
         result.put("currentMedications", currentMedications);
         result.put("chronicConditions", chronicConditions);
         result.put("bloodType", bloodType);
         result.put("vaccinationStatus", vaccinationStatus);
         result.put("medicalHistory", medicalHistory);
+        result.put("height", height);
+        result.put("weight", weight);
         result.put("createdAt", createdAt);
         result.put("updatedAt", updatedAt);
         return result;

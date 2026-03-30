@@ -1,25 +1,59 @@
 package rakib.bcs430healthcareproject;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+
 /**
  * Model class representing an appointment between a patient and doctor.
  */
 public class Appointment {
+
+    private static final DateTimeFormatter SLOT_TIME_FORMAT =
+            DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH);
+
     private String appointmentId;
+
     private String patientUid;
     private String doctorUid;
+
     private String patientName;
     private String doctorName;
+
+    // Timestamp for sorting
     private Long appointmentDateTime; // Unix timestamp
-    private String appointmentTime; // e.g., "2024-03-15 10:30 AM"
+
+    // Human readable date/time
+    private String appointmentTime; // e.g., "2026-03-15 10:30 AM"
+
+    /**
+     * Fields used for availability checking
+     */
+    private String appointmentDate; // e.g., "2026-03-15"
+    private String appointmentSlot; // e.g., "10:30 AM"
+
     private String status; // SCHEDULED, COMPLETED, CANCELLED
+
+    private Boolean newPatient;
+
+    private String reason;
+
     private String notes;
+
     private Long createdAt;
 
     public Appointment() {
     }
 
-    public Appointment(String patientUid, String doctorUid, String patientName, 
-                       String doctorName, Long appointmentDateTime) {
+    public Appointment(String patientUid,
+                       String doctorUid,
+                       String patientName,
+                       String doctorName,
+                       Long appointmentDateTime) {
+
         this.patientUid = patientUid;
         this.doctorUid = doctorUid;
         this.patientName = patientName;
@@ -29,7 +63,8 @@ public class Appointment {
         this.createdAt = System.currentTimeMillis();
     }
 
-    // Getters and Setters
+    // ===== Getters / Setters =====
+
     public String getAppointmentId() {
         return appointmentId;
     }
@@ -82,8 +117,37 @@ public class Appointment {
         return appointmentTime;
     }
 
+    /**
+     * Also extracts appointmentDate and appointmentSlot automatically.
+     * Expected format: "YYYY-MM-DD HH:MM AM"
+     */
     public void setAppointmentTime(String appointmentTime) {
         this.appointmentTime = appointmentTime;
+
+        if (appointmentTime != null && appointmentTime.contains(" ")) {
+            String[] parts = appointmentTime.split(" ", 2);
+
+            if (parts.length == 2) {
+                this.appointmentDate = parts[0];
+                this.appointmentSlot = parts[1];
+            }
+        }
+    }
+
+    public String getAppointmentDate() {
+        return appointmentDate;
+    }
+
+    public void setAppointmentDate(String appointmentDate) {
+        this.appointmentDate = appointmentDate;
+    }
+
+    public String getAppointmentSlot() {
+        return appointmentSlot;
+    }
+
+    public void setAppointmentSlot(String appointmentSlot) {
+        this.appointmentSlot = appointmentSlot;
     }
 
     public String getStatus() {
@@ -92,6 +156,22 @@ public class Appointment {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Boolean getNewPatient() {
+        return newPatient;
+    }
+
+    public void setNewPatient(Boolean newPatient) {
+        this.newPatient = newPatient;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public void setReason(String reason) {
+        this.reason = reason;
     }
 
     public String getNotes() {
@@ -108,5 +188,34 @@ public class Appointment {
 
     public void setCreatedAt(Long createdAt) {
         this.createdAt = createdAt;
+    }
+
+    /**
+     * Returns a best-effort epoch millis for the appointment's scheduled time.
+     */
+    public Long resolveAppointmentEpochMillis() {
+        if (appointmentDateTime != null) {
+            return appointmentDateTime;
+        }
+
+        if (appointmentDate == null || appointmentDate.isBlank()
+                || appointmentSlot == null || appointmentSlot.isBlank()) {
+            return null;
+        }
+
+        try {
+            LocalDate date = LocalDate.parse(appointmentDate.trim());
+            LocalTime time = LocalTime.parse(appointmentSlot.trim().toUpperCase(Locale.ENGLISH), SLOT_TIME_FORMAT);
+            LocalDateTime dateTime = LocalDateTime.of(date, time);
+
+            return dateTime.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public boolean hasPassed(long nowEpochMillis) {
+        Long appointmentEpoch = resolveAppointmentEpochMillis();
+        return appointmentEpoch != null && appointmentEpoch < nowEpochMillis;
     }
 }

@@ -9,6 +9,9 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Controller for the Patient Profile View.
  * Allows patients to view and edit their profile information.
@@ -22,10 +25,13 @@ public class ProfileController {
     @FXML private ComboBox<String> genderComboBox;
     @FXML private TextField insuranceNumberField;
     @FXML private TextField insuranceCompanyField;
+    @FXML private ComboBox<PharmacyOption> preferredPickupPharmacyComboBox;
     @FXML private TextField emailField;
     @FXML private TextField phoneField;
     @FXML private ComboBox<String> bloodTypeComboBox;
     @FXML private ComboBox<String> vaccinationStatusComboBox;
+    @FXML private ComboBox<String> heightComboBox;
+    @FXML private TextField weightField;
     @FXML private TextArea allergiesArea;
     @FXML private TextArea currentMedicationsArea;
     @FXML private TextArea chronicConditionsArea;
@@ -40,6 +46,8 @@ public class ProfileController {
     private UserContext userContext;
     private PatientProfile currentProfile;
     private boolean isEditMode = false;
+    private boolean isDoctorReadOnlyView = false;
+    private List<PharmacyOption> pharmacyOptions = new ArrayList<>();
 
     @FXML
     public void initialize() {
@@ -50,6 +58,14 @@ public class ProfileController {
         genderComboBox.getItems().addAll("Not specified", "Male", "Female", "Other");
         bloodTypeComboBox.getItems().addAll("Not specified", "O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-");
         vaccinationStatusComboBox.getItems().addAll("Not specified", "Up to date", "Partially vaccinated", "Not vaccinated");
+        preferredPickupPharmacyComboBox.getItems().add(new PharmacyOption(null, "No preferred pharmacy selected", "", ""));
+        
+        // Setup height dropdown
+        heightComboBox.getItems().addAll(
+            "Not specified", "4'8\"", "4'9\"", "4'10\"", "4'11\"", "5'0\"", "5'1\"", "5'2\"", "5'3\"", "5'4\"",
+            "5'5\"", "5'6\"", "5'7\"", "5'8\"", "5'9\"", "5'10\"", "5'11\"", "6'0\"", "6'1\"", "6'2\"",
+            "6'3\"", "6'4\"", "6'5\"", "6'6\""
+        );
         
         // Setup age auto-calculation on date change
         dateOfBirthPicker.valueProperty().addListener((obs, oldVal, newVal) -> {
@@ -59,20 +75,28 @@ public class ProfileController {
             }
         });
         
-        // Load current profile
-        if (userContext.isLoggedIn()) {
-            currentProfile = userContext.getProfile();
-            if (currentProfile != null) {
-                loadProfileData();
-            } else {
-                showStatus("Profile not available", true);
-            }
-        } else {
+        if (!userContext.isLoggedIn()) {
             showStatus("Not logged in", true);
             SceneRouter.go("login-view.fxml", "Login");
+            return;
         }
-        
-        // Setup button visibility
+
+        if (userContext.isDoctor() && userContext.getSelectedPatientProfile() != null) {
+            isDoctorReadOnlyView = true;
+            currentProfile = userContext.getSelectedPatientProfile();
+            titleLabel.setText("Patient Profile");
+        } else {
+            currentProfile = userContext.getProfile();
+            titleLabel.setText("My Profile");
+        }
+
+        if (currentProfile != null) {
+            loadProfileData();
+        } else {
+            showStatus("Profile not available", true);
+        }
+
+        loadPharmacyOptions();
         updateButtonVisibility();
     }
 
@@ -100,12 +124,19 @@ public class ProfileController {
         
         insuranceNumberField.setText(currentProfile.getInsuranceNumber() != null ? currentProfile.getInsuranceNumber() : "");
         insuranceCompanyField.setText(currentProfile.getInsuranceCompany() != null ? currentProfile.getInsuranceCompany() : "");
+        selectPreferredPharmacy();
         
         String bloodType = currentProfile.getBloodType() != null ? currentProfile.getBloodType() : "Not specified";
         bloodTypeComboBox.setValue(bloodType);
         
         String vaccinationStatus = currentProfile.getVaccinationStatus() != null ? currentProfile.getVaccinationStatus() : "Not specified";
         vaccinationStatusComboBox.setValue(vaccinationStatus);
+        
+        String height = currentProfile.getHeight() != null ? currentProfile.getHeight() : "Not specified";
+        heightComboBox.setValue(height);
+        
+        Double weight = currentProfile.getWeight();
+        weightField.setText(weight != null ? weight.toString() : "");
         
         allergiesArea.setText(currentProfile.getAllergies() != null ? currentProfile.getAllergies() : "");
         currentMedicationsArea.setText(currentProfile.getCurrentMedications() != null ? currentProfile.getCurrentMedications() : "");
@@ -117,6 +148,10 @@ public class ProfileController {
 
     @FXML
     private void onEdit() {
+        if (isDoctorReadOnlyView) {
+            showStatus("Doctors can only view patient profiles here.", true);
+            return;
+        }
         isEditMode = true;
         setFieldsEditable(true);
         updateButtonVisibility();
@@ -125,6 +160,10 @@ public class ProfileController {
 
     @FXML
     private void onSave() {
+        if (isDoctorReadOnlyView) {
+            showStatus("Doctors can only view patient profiles here.", true);
+            return;
+        }
         // Validate required fields
         if (nameField.getText() == null || nameField.getText().trim().isEmpty()) {
             showStatus("Name is required", true);
@@ -171,6 +210,19 @@ public class ProfileController {
         if (insuranceCompanyField.getText() != null) {
             currentProfile.setInsuranceCompany(insuranceCompanyField.getText().trim());
         }
+
+        PharmacyOption preferredOption = preferredPickupPharmacyComboBox.getValue();
+        if (preferredOption == null || preferredOption.uid == null || preferredOption.uid.isBlank()) {
+            currentProfile.setPreferredPharmacyUid(null);
+            currentProfile.setPreferredPharmacyName(null);
+            currentProfile.setPreferredPharmacyAddress(null);
+            currentProfile.setPreferredPharmacyPhoneNumber(null);
+        } else {
+            currentProfile.setPreferredPharmacyUid(preferredOption.uid);
+            currentProfile.setPreferredPharmacyName(preferredOption.name);
+            currentProfile.setPreferredPharmacyAddress(preferredOption.address);
+            currentProfile.setPreferredPharmacyPhoneNumber(preferredOption.phoneNumber);
+        }
         
         if (bloodTypeComboBox.getValue() != null) {
             currentProfile.setBloodType(bloodTypeComboBox.getValue());
@@ -178,6 +230,20 @@ public class ProfileController {
         
         if (vaccinationStatusComboBox.getValue() != null) {
             currentProfile.setVaccinationStatus(vaccinationStatusComboBox.getValue());
+        }
+        
+        if (heightComboBox.getValue() != null && !heightComboBox.getValue().equals("Not specified")) {
+            currentProfile.setHeight(heightComboBox.getValue());
+        }
+        
+        if (weightField.getText() != null && !weightField.getText().trim().isEmpty()) {
+            try {
+                Double weight = Double.parseDouble(weightField.getText().trim());
+                currentProfile.setWeight(weight);
+            } catch (NumberFormatException e) {
+                showStatus("Invalid weight value. Please enter a number.", true);
+                return;
+            }
         }
         
         if (allergiesArea.getText() != null) {
@@ -229,6 +295,12 @@ public class ProfileController {
 
     @FXML
     private void onBack() {
+        if (isDoctorReadOnlyView) {
+            userContext.clearSelectedPatientProfile();
+            SceneRouter.go("doctor-patients-view.fxml", "My Patients");
+            return;
+        }
+
         SceneRouter.go("patient-dashboard-view.fxml", "Patient Dashboard");
     }
 
@@ -244,8 +316,11 @@ public class ProfileController {
         genderComboBox.setDisable(!editable);
         insuranceNumberField.setEditable(editable);
         insuranceCompanyField.setEditable(editable);
+        preferredPickupPharmacyComboBox.setDisable(!editable);
         bloodTypeComboBox.setDisable(!editable);
         vaccinationStatusComboBox.setDisable(!editable);
+        heightComboBox.setDisable(!editable);
+        weightField.setEditable(editable);
         allergiesArea.setEditable(editable);
         medicalHistoryArea.setEditable(editable);
         currentMedicationsArea.setEditable(editable);
@@ -256,6 +331,16 @@ public class ProfileController {
      * Update button visibility based on current mode
      */
     private void updateButtonVisibility() {
+        if (isDoctorReadOnlyView) {
+            editButton.setManaged(false);
+            editButton.setVisible(false);
+            saveButton.setManaged(false);
+            saveButton.setVisible(false);
+            cancelButton.setManaged(false);
+            cancelButton.setVisible(false);
+            return;
+        }
+
         if (isEditMode) {
             editButton.setManaged(false);
             editButton.setVisible(false);
@@ -317,5 +402,84 @@ public class ProfileController {
         }
         
         return age;
+    }
+
+    private void loadPharmacyOptions() {
+        firebaseService.getAllPharmacies()
+                .thenAccept(pharmacies -> Platform.runLater(() -> {
+                    pharmacyOptions = new ArrayList<>();
+                    preferredPickupPharmacyComboBox.getItems().clear();
+                    preferredPickupPharmacyComboBox.getItems().add(new PharmacyOption(null, "No preferred pharmacy selected", "", ""));
+
+                    for (PharmacyProfile pharmacy : pharmacies) {
+                        pharmacyOptions.add(new PharmacyOption(
+                                pharmacy.getUid(),
+                                defaultText(pharmacy.getPharmacyName(), "Pharmacy"),
+                                defaultText(pharmacy.getFullAddress(), "Address not provided"),
+                                defaultText(pharmacy.getPhoneNumber(), "Phone not provided")
+                        ));
+                    }
+
+                    preferredPickupPharmacyComboBox.getItems().addAll(pharmacyOptions);
+                    selectPreferredPharmacy();
+                }))
+                .exceptionally(e -> {
+                    Platform.runLater(() -> showStatus("Failed to load pharmacy options: " + e.getMessage(), true));
+                    return null;
+                });
+    }
+
+    private void selectPreferredPharmacy() {
+        if (preferredPickupPharmacyComboBox == null || currentProfile == null) {
+            return;
+        }
+
+        String preferredUid = currentProfile.getPreferredPharmacyUid();
+        if (preferredUid != null && !preferredUid.isBlank()) {
+            for (PharmacyOption option : preferredPickupPharmacyComboBox.getItems()) {
+                if (preferredUid.equals(option.uid)) {
+                    preferredPickupPharmacyComboBox.setValue(option);
+                    return;
+                }
+            }
+        }
+
+        String preferredAddress = currentProfile.getPreferredPharmacyAddress();
+        if (preferredAddress != null && !preferredAddress.isBlank()) {
+            for (PharmacyOption option : preferredPickupPharmacyComboBox.getItems()) {
+                if (preferredAddress.equalsIgnoreCase(option.address)) {
+                    preferredPickupPharmacyComboBox.setValue(option);
+                    return;
+                }
+            }
+        }
+
+        preferredPickupPharmacyComboBox.getSelectionModel().selectFirst();
+    }
+
+    private String defaultText(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static class PharmacyOption {
+        private final String uid;
+        private final String name;
+        private final String address;
+        private final String phoneNumber;
+
+        private PharmacyOption(String uid, String name, String address, String phoneNumber) {
+            this.uid = uid;
+            this.name = name;
+            this.address = address;
+            this.phoneNumber = phoneNumber;
+        }
+
+        @Override
+        public String toString() {
+            if (uid == null || uid.isBlank()) {
+                return name;
+            }
+            return name + " | " + address + " | " + phoneNumber;
+        }
     }
 }

@@ -6,13 +6,20 @@ package rakib.bcs430healthcareproject;
  */
 public class UserContext {
     private static UserContext instance;
+
     private String uid;
     private String role;
+
     private PatientProfile patientProfile;
     private DoctorProfile doctorProfile;
-    private Doctor selectedDoctor; // For appointment booking
+    private PharmacyProfile pharmacyProfile;
 
-    private UserContext() {}
+    // For patient appointment booking
+    private Doctor selectedDoctor;
+    private PatientProfile selectedPatientProfile;
+
+    private UserContext() {
+    }
 
     public static synchronized UserContext getInstance() {
         if (instance == null) {
@@ -27,10 +34,20 @@ public class UserContext {
         this.patientProfile = profile;
         this.doctorProfile = null;
     }
+
     public void setDoctorUserData(String uid, DoctorProfile profile) {
         this.uid = uid;
         this.role = "DOCTOR";
         this.doctorProfile = profile;
+        this.patientProfile = null;
+        this.pharmacyProfile = null;
+    }
+
+    public void setPharmacyUserData(String uid, PharmacyProfile profile) {
+        this.uid = uid;
+        this.role = "PHARMACY";
+        this.pharmacyProfile = profile;
+        this.doctorProfile = null;
         this.patientProfile = null;
     }
 
@@ -39,6 +56,9 @@ public class UserContext {
         this.role = null;
         this.patientProfile = null;
         this.doctorProfile = null;
+        this.pharmacyProfile = null;
+        this.selectedDoctor = null;
+        this.selectedPatientProfile = null;
     }
 
     public String getUid() {
@@ -61,6 +81,10 @@ public class UserContext {
         return uid != null && role != null;
     }
 
+    public boolean isPharmacy() {
+        return "PHARMACY".equals(role);
+    }
+
     public PatientProfile getProfile() {
         return patientProfile;
     }
@@ -69,12 +93,19 @@ public class UserContext {
         return doctorProfile;
     }
 
+    public PharmacyProfile getPharmacyProfile() {
+        return pharmacyProfile;
+    }
+
     public String getEmail() {
         if (isPatient() && patientProfile != null) {
             return patientProfile.getEmail();
         }
         if (isDoctor() && doctorProfile != null) {
             return doctorProfile.getEmail();
+        }
+        if (isPharmacy() && pharmacyProfile != null) {
+            return pharmacyProfile.getEmail();
         }
         return null;
     }
@@ -86,12 +117,11 @@ public class UserContext {
         if (isDoctor() && doctorProfile != null) {
             return doctorProfile.getName();
         }
+        if (isPharmacy() && pharmacyProfile != null) {
+            return pharmacyProfile.getPharmacyName();
+        }
         return null;
     }
-
-    /* =======================
-       UPDATE METHODS
-       ======================= */
 
     public void updatePatientProfile(PatientProfile updatedProfile) {
         if (isPatient()) {
@@ -105,6 +135,12 @@ public class UserContext {
         }
     }
 
+    public void updatePharmacyProfile(PharmacyProfile updatedProfile) {
+        if (isPharmacy()) {
+            this.pharmacyProfile = updatedProfile;
+        }
+    }
+
     public void setSelectedDoctor(Doctor doctor) {
         this.selectedDoctor = doctor;
     }
@@ -115,5 +151,17 @@ public class UserContext {
 
     public void clearSelectedDoctor() {
         this.selectedDoctor = null;
+    }
+
+    public void setSelectedPatientProfile(PatientProfile selectedPatientProfile) {
+        this.selectedPatientProfile = selectedPatientProfile;
+    }
+
+    public PatientProfile getSelectedPatientProfile() {
+        return selectedPatientProfile;
+    }
+
+    public void clearSelectedPatientProfile() {
+        this.selectedPatientProfile = null;
     }
 }
