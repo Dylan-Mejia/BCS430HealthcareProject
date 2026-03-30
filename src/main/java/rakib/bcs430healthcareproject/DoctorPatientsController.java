@@ -88,6 +88,7 @@ public class DoctorPatientsController {
         medsLabel.setStyle("-fx-text-fill: #475569; -fx-font-size: 13;");
 
         HBox buttonRow = new HBox(10);
+
         Button viewProfileButton = new Button("View Profile");
         viewProfileButton.setStyle("-fx-background-color: #0F766E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 8 16;");
         viewProfileButton.setOnAction(event -> onViewProfile(patient));
@@ -96,6 +97,13 @@ public class DoctorPatientsController {
         sendPrescriptionButton.setStyle("-fx-background-color: #14B8A6; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 8 16;");
         sendPrescriptionButton.setOnAction(event -> onSendPrescription(patient));
 
+        Button sendTextButton = new Button("Send Text");
+        sendTextButton.setStyle("-fx-background-color: #0EA5E9; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 8 16;");
+        sendTextButton.setOnAction(event -> onSendText(patient));
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        buttonRow.getChildren().addAll(viewProfileButton, sendPrescriptionButton, sendTextButton, spacer);
         Button refillPrescriptionButton = new Button("Refill Prescription");
         refillPrescriptionButton.setStyle("-fx-background-color: #0EA5E9; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-padding: 8 16;");
         refillPrescriptionButton.setOnAction(event -> onRefillPrescription(patient));
@@ -118,6 +126,9 @@ public class DoctorPatientsController {
         SceneRouter.go("doctor-prescription-view.fxml", "Send Prescription");
     }
 
+    private void onSendText(PatientProfile patient) {
+        userContext.setSelectedPatientProfile(patient);
+        SceneRouter.go("doctor-message-view.fxml", "Send Message");
     private void onRefillPrescription(PatientProfile patient) {
         showStatus("Loading refillable prescriptions for " + fallback(patient.getName()) + "...", false);
         firebaseService.getPatientPrescriptions(patient.getUid())
@@ -194,6 +205,7 @@ public class DoctorPatientsController {
     private String fallback(String value) {
         return value == null || value.isBlank() ? "Not provided" : value;
     }
+}
 
     private static class PrescriptionChoice {
         private final Prescription prescription;

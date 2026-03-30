@@ -48,6 +48,15 @@ public class DoctorPrescriptionController {
             return;
         }
 
+        patientNameLabel.setText(
+                selectedPatient.getName() != null ? selectedPatient.getName() : "Patient"
+        );
+
+        doctorNameLabel.setText(
+                userContext.getName() != null
+                        ? "Prescribing Doctor: Dr. " + userContext.getName()
+                        : "Prescribing Doctor"
+        );
         patientNameLabel.setText(selectedPatient.getName() != null ? selectedPatient.getName() : "Patient");
         doctorNameLabel.setText(userContext.getName() != null ? "Prescribing Doctor: Dr. " + userContext.getName() : "Prescribing Doctor");
         populatePreferredPharmacy();
@@ -55,6 +64,9 @@ public class DoctorPrescriptionController {
 
     @FXML
     private void onSendPrescription() {
+
+        String pharmacyName = safeTrim(pharmacyNameField.getText());
+        String pharmacyAddress = safeTrim(pharmacyAddressArea.getText());
         String pharmacyStreetAddress = safeTrim(pharmacyStreetAddressField.getText());
         String pharmacyCity = safeTrim(pharmacyCityField.getText());
         String pharmacyState = safeTrim(pharmacyStateField.getText()).toUpperCase();
@@ -74,6 +86,9 @@ public class DoctorPrescriptionController {
         Integer remainingRefills = PrescriptionRefillSupport.parseRemainingRefills(refillDetails);
         String instructions = safeTrim(instructionsArea.getText());
 
+        // Validation
+        if (pharmacyAddress.isBlank()) {
+            showStatus("Pharmacy address is required.", true);
         if (pharmacyStreetAddress.isBlank() || pharmacyCity.isBlank() || pharmacyState.isBlank() || pharmacyZip.isBlank()) {
             showStatus("Street address, city, state, and ZIP are required.", true);
             return;
@@ -120,7 +135,7 @@ public class DoctorPrescriptionController {
         prescription.setDoctorName(userContext.getName());
         prescription.setPatientUid(selectedPatient.getUid());
         prescription.setPatientName(selectedPatient.getName());
-        prescription.setPharmacyName(safeTrim(pharmacyNameField.getText()));
+        prescription.setPharmacyName(pharmacyName);
         prescription.setPharmacyAddress(pharmacyAddress);
         prescription.setPharmacyAddressNormalized(AddressNormalizer.normalize(pharmacyAddress));
         prescription.setPharmacyPhoneNumber(pharmacyPhone);
