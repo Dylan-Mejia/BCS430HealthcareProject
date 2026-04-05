@@ -8,18 +8,46 @@ import javafx.scene.control.TextArea;
 public class DoctorPatientHistoryController {
 
     @FXML private Label patientNameLabel;
-    @FXML private Label patientAgeGenderLabel;
-    @FXML private Label patientContactLabel;
+    @FXML private Label statusLabel;
+
+    // Overview
+    @FXML private Label overviewAgeLabel;
+    @FXML private Label overviewGenderLabel;
+    @FXML private Label overviewDobLabel;
+
+    // Personal Info
+    @FXML private Label fullNameLabel;
+    @FXML private Label ageLabel;
+    @FXML private Label genderLabel;
+    @FXML private Label dobLabel;
+
+    // Contact Info
+    @FXML private Label emailLabel;
+    @FXML private Label phoneLabel;
+    @FXML private Label zipLabel;
+
+    // Insurance Info
+    @FXML private Label insuranceCompanyLabel;
+    @FXML private Label insuranceNumberLabel;
+    @FXML private Label preferredPharmacyLabel;
+    @FXML private Label preferredPharmacyAddressLabel;
+    @FXML private Label preferredPharmacyPhoneLabel;
+
+    // Medical Info
     @FXML private Label bloodTypeLabel;
     @FXML private Label vaccinationStatusLabel;
-    @FXML private Label heightWeightLabel;
-    @FXML private Label emergencyContactLabel;
-    @FXML private Label statusLabel;
+    @FXML private Label heightLabel;
+    @FXML private Label weightLabel;
 
     @FXML private TextArea allergiesArea;
     @FXML private TextArea medicationsArea;
     @FXML private TextArea chronicConditionsArea;
     @FXML private TextArea medicalHistoryArea;
+
+    // Emergency Contact
+    @FXML private Label emergencyContactNameLabel;
+    @FXML private Label emergencyContactRelationshipLabel;
+    @FXML private Label emergencyContactPhoneLabel;
 
     private FirebaseService firebaseService;
     private UserContext userContext;
@@ -48,7 +76,7 @@ public class DoctorPatientHistoryController {
 
         if (selectedPatientProfile != null) {
             populateFields(selectedPatientProfile);
-            statusLabel.setText("Patient history loaded.");
+            statusLabel.setText("Patient information loaded.");
             return;
         }
 
@@ -57,17 +85,17 @@ public class DoctorPatientHistoryController {
             return;
         }
 
-        statusLabel.setText("Loading patient history...");
+        statusLabel.setText("Loading patient information...");
 
         firebaseService.getPatientProfile(selectedPatientUid)
                 .thenAccept(profile -> Platform.runLater(() -> {
                     userContext.setSelectedPatientProfile(profile);
                     populateFields(profile);
-                    statusLabel.setText("Patient history loaded.");
+                    statusLabel.setText("Patient information loaded.");
                 }))
                 .exceptionally(ex -> {
                     Platform.runLater(() ->
-                            statusLabel.setText("Failed to load patient history.")
+                            statusLabel.setText("Failed to load patient information.")
                     );
                     ex.printStackTrace();
                     return null;
@@ -80,34 +108,50 @@ public class DoctorPatientHistoryController {
             return;
         }
 
-        patientNameLabel.setText(valueOrDefault(profile.getName()));
-
         String ageText = profile.getAge() == null ? "Not provided" : String.valueOf(profile.getAge());
         String genderText = valueOrDefault(profile.getGender());
-        patientAgeGenderLabel.setText("Age: " + ageText + "    Gender: " + genderText);
+        String dobText = valueOrDefault(profile.getDateOfBirth());
 
-        String phoneText = valueOrDefault(profile.getPhoneNumber());
-        String emailText = valueOrDefault(profile.getEmail());
-        patientContactLabel.setText("Phone: " + phoneText + "    Email: " + emailText);
+        patientNameLabel.setText(valueOrDefault(profile.getName()));
+
+        // Overview
+        overviewAgeLabel.setText(ageText);
+        overviewGenderLabel.setText(genderText);
+        overviewDobLabel.setText(dobText);
+
+        // Personal Information
+        fullNameLabel.setText(valueOrDefault(profile.getName()));
+        ageLabel.setText(ageText);
+        genderLabel.setText(genderText);
+        dobLabel.setText(dobText);
+
+        // Contact Information
+        emailLabel.setText(valueOrDefault(profile.getEmail()));
+        phoneLabel.setText(valueOrDefault(profile.getPhoneNumber()));
+        zipLabel.setText(valueOrDefault(profile.getZip()));
+
+        // Insurance Information
+        insuranceCompanyLabel.setText(valueOrDefault(profile.getInsuranceCompany()));
+        insuranceNumberLabel.setText(valueOrDefault(profile.getInsuranceNumber()));
+        preferredPharmacyLabel.setText(valueOrDefault(profile.getPreferredPharmacyName()));
+        preferredPharmacyAddressLabel.setText(valueOrDefault(profile.getPreferredPharmacyAddress()));
+        preferredPharmacyPhoneLabel.setText(valueOrDefault(profile.getPreferredPharmacyPhoneNumber()));
+
+        // Medical Information
+        bloodTypeLabel.setText(valueOrDefault(profile.getBloodType()));
+        vaccinationStatusLabel.setText(valueOrDefault(profile.getVaccinationStatus()));
+        heightLabel.setText(valueOrDefault(profile.getHeight()));
+        weightLabel.setText(profile.getWeight() == null ? "Not provided" : profile.getWeight().toString());
 
         allergiesArea.setText(valueOrDefault(profile.getAllergies()));
         medicationsArea.setText(valueOrDefault(profile.getCurrentMedications()));
         chronicConditionsArea.setText(valueOrDefault(profile.getChronicConditions()));
         medicalHistoryArea.setText(valueOrDefault(profile.getMedicalHistory()));
 
-        bloodTypeLabel.setText(valueOrDefault(profile.getBloodType()));
-        vaccinationStatusLabel.setText(valueOrDefault(profile.getVaccinationStatus()));
-
-        String heightText = valueOrDefault(profile.getHeight());
-        String weightText = profile.getWeight() == null ? "Not provided" : profile.getWeight().toString();
-        heightWeightLabel.setText("Height: " + heightText + "    Weight: " + weightText);
-
-        String emergencyName = valueOrDefault(profile.getEmergencyContactName());
-        String emergencyRelationship = valueOrDefault(profile.getEmergencyContactRelationship());
-        String emergencyPhone = valueOrDefault(profile.getEmergencyContactPhone());
-        emergencyContactLabel.setText(
-                emergencyName + "    |    " + emergencyRelationship + "    |    " + emergencyPhone
-        );
+        // Emergency Contact
+        emergencyContactNameLabel.setText(valueOrDefault(profile.getEmergencyContactName()));
+        emergencyContactRelationshipLabel.setText(valueOrDefault(profile.getEmergencyContactRelationship()));
+        emergencyContactPhoneLabel.setText(valueOrDefault(profile.getEmergencyContactPhone()));
     }
 
     private void setReadOnly(TextArea area) {
