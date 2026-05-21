@@ -30,9 +30,14 @@ public class FirebaseInitializer {
         }
 
         try {
-            // Load the service account key from resources
+            // Load the service account key from resources. The file is packaged
+            // with the application's FXML/CSS resources.
             InputStream serviceAccountStream = FirebaseInitializer.class
                     .getResourceAsStream("/rakib/bcs430healthcareproject/key.json");
+
+            if (serviceAccountStream == null) {
+                serviceAccountStream = FirebaseInitializer.class.getResourceAsStream("/key.json");
+            }
 
             if (serviceAccountStream == null) {
                 throw new RuntimeException("key.json not found in resources");
